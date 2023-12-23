@@ -1,6 +1,7 @@
-function createGameboard() {
+function createGameboard(getActivePlayer,playRound) {
     const rows = 3;
     const board = [];
+    const gameBoardElement = document.getElementById('gameContainer');
   
     // 2d array that will represent the state of the game board
     // For this 2d array, row 0 will represent the top row and
@@ -8,97 +9,113 @@ function createGameboard() {
     for (let i = 0; i < rows; i++) {
       board[i] = [];
       for (let j = 0; j < rows; j++) {
-        board[i].push(Cell());
+        const cellElement = document.createElement('div');
+        cellElement.classList.add('cell');
+        gameBoardElement.appendChild(cellElement);
+        board[i].push(Cell(cellElement, getActivePlayer, playRound));
       }
     }
 
     const getBoard = () => board;
 
-    const printBoard = () => {
-        const boardWithCellValues = board.map((row) => row.map((cell) => cell.getValue()))
-        console.log(boardWithCellValues);
-    };
-
-    return { getBoard, printBoard };
+    return { getBoard };
 }
 
-function Cell() {
+function Cell(cellElement, getActivePlayer, playRound) {
     let value = 0;
-  
-    // Accept a player's token to change the value of the cell
+    cellElement.addEventListener('click', function() {
+        let value = getActivePlayer().value;
+        cellElement.innerHTML = getActivePlayer().img;
+        fillSlot(value);
+        playRound();
+    });
     const fillSlot = (player) => {
       value = player;
     };
   
-    // How we will retrieve the current value of this cell through closure
     const getValue = () => value;
+
+    const resetCell = () => {
+        cellElement.innerHTML = '';
+        fillSlot(0);
+    }
   
-    return {fillSlot, getValue};
+    return {fillSlot, getValue, resetCell};
 }
 
 function gameController() {
-    const gameBoard = createGameboard();
-    const board = gameBoard.getBoard();
+    const playerIndicatorElement = document.getElementById('turnIndicator');
     const players = [
     {
         name: 'Player One',
-        value: 1
+        value: 1,
+        img: '<img src = "close.png"></img>'
       },
     {
         name: 'Player Two',
-        value: 2
+        value: 2,
+        img: '<img src = "circle.png"></img>'
       }
     ];
 
     let activePlayer = players[0];
 
+    
     const switchPlayerTurn = () => {
         if (activePlayer == players[0]) {
             activePlayer = players[1];
         } else {
             activePlayer = players[0];
         }
+        playerIndicatorElement.textContent = `${getActivePlayer().name}'s move`;
     };
     
     const getActivePlayer = () => activePlayer;
 
-    const printNewRound = () => {
-        gameBoard.printBoard();
-    };
-
+    let round = 0;
+    let hasWinner = false;
+    
     const playRound = () => {
-        let round = 0;
-        hasWinner  = false
-        while (!hasWinner && round < 9) {
+        if (!hasWinner && round < 9) {
             console.log(`${getActivePlayer().name}'s move`);
-        
-            let userInput = prompt("Please enter your row and column of where you want to place:");
-
-            let numbers = userInput.split(' ');
-
-            let row = parseInt(numbers[0]);
-            let column = parseInt(numbers[1]);
-
-            board[row][column].fillSlot(getActivePlayer().value);
+    
             hasWinner = checkForWin(board);
-            round++;
+            if (hasWinner) {
+                playerIndicatorElement.textContent = `${getActivePlayer().name} wins!`;
+                return;
+            } else {
+                round++;
+                if (round >= 9) {
+                    playerIndicatorElement.textContent = "Game ends in a tie!";
+                    return; 
+                }
+            }
+    
             switchPlayerTurn();
-            printNewRound();
         }
-        if (round >= 9) {
-            console.log("Game ends in a tie!");
-        } else {
-            switchPlayerTurn();
-            console.log(`${getActivePlayer().name} wins!`);
+    }
+
+    const gameBoard = createGameboard(getActivePlayer, playRound);
+    const board = gameBoard.getBoard();
+    playerIndicatorElement.textContent = `${getActivePlayer().name}'s move`
+
+    const reset = () => {
+        const rows = 3;
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < rows; j++) {
+              board[i][j].resetCell();
+            }
         }
-    };
+        round = 0;
+        hasWinner = false;
+        activePlayer = players[0];
 
-    return {playRound,getActivePlayer};
-}
+        playerIndicatorElement.textContent = `${getActivePlayer().name}'s move`
+    }
 
-function startGame() {
-    const game = gameController();
-    game.playRound();
+    document.getElementById('reset').addEventListener('click', reset);
+
+    return {getActivePlayer,playRound};
 }
 
 function checkForWin(board) {
@@ -112,13 +129,14 @@ function checkForWin(board) {
             return true;
         }
     }
-
-    for (let j = 0; j < board.length; j++) {
-        if (board[0][0].getValue() == board[1][1].getValue() && board[0][0].getValue() == board[2][2].getValue() && board[0][0].getValue() !== 0) {
-            return true;
-        }
+    if (board[0][0].getValue() == board[1][1].getValue() && board[0][0].getValue() == board[2][2].getValue() && board[0][0].getValue() !== 0) {
+        return true;
+    }
+    if (board[2][0].getValue() == board[1][1].getValue() && board[2][0].getValue() == board[0][2].getValue() && board[2][0].getValue() !== 0) {
+        return true;
     }
     return false;
 }
 
-startGame();
+const game = gameController();
+
