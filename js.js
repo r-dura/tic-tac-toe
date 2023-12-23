@@ -23,12 +23,14 @@ function createGameboard(getActivePlayer,playRound) {
 
 function Cell(cellElement, getActivePlayer, playRound) {
     let value = 0;
-    cellElement.addEventListener('click', function() {
+    function cellClick() {
         let value = getActivePlayer().value;
         cellElement.innerHTML = getActivePlayer().img;
         fillSlot(value);
         playRound();
-    });
+    }
+    cellElement.addEventListener('click', cellClick);
+
     const fillSlot = (player) => {
       value = player;
     };
@@ -36,11 +38,16 @@ function Cell(cellElement, getActivePlayer, playRound) {
     const getValue = () => value;
 
     const resetCell = () => {
+        cellElement.addEventListener('click', cellClick);
         cellElement.innerHTML = '';
         fillSlot(0);
     }
+
+    const disableClicks = () => {
+        cellElement.removeEventListener('click', cellClick);
+    }
   
-    return {fillSlot, getValue, resetCell};
+    return {fillSlot, getValue, resetCell, disableClicks, cellClick};
 }
 
 function gameController() {
@@ -82,6 +89,11 @@ function gameController() {
             hasWinner = checkForWin(board);
             if (hasWinner) {
                 playerIndicatorElement.textContent = `${getActivePlayer().name} wins!`;
+                for (let i = 0; i < 3; i++) {
+                    for (let j = 0; j < 3; j++) {
+                      board[i][j].disableClicks();
+                    }
+                }
                 return;
             } else {
                 round++;
